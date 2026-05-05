@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌟 中文選字小遊戲 🌟</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+            color: #006064;
+            text-align: center;
+        }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        h1 { font-size: 2.8em; margin: 20px 0; text-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        .mode-btn {
+            display: inline-block; margin: 20px; padding: 25px 40px;
+            font-size: 1.6em; font-weight: bold; border: none; border-radius: 20px;
+            cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        .compose-btn { background: #00acc1; color: white; }
+        .listen-btn { background: #ff5722; color: white; }
+        .mode-btn:hover { transform: scale(1.08); }
+
+        .game-screen { display: none; }
+        .active { display: block; }
+        .question {
+            font-size: 4.5em; font-weight: bold; background: white;
+            padding: 30px; margin: 30px auto; border-radius: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15); width: fit-content; min-width: 500px;
+        }
+        .options {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+            max-width: 800px; margin: 40px auto;
+        }
+        .listen-options { grid-template-columns: repeat(3, 1fr) !important; }
+        .listen-options .option-btn { font-size: 2.2em; }
+
+        .option-btn {
+            font-size: 1.8em; padding: 25px; border: none; border-radius: 15px;
+            background: #00acc1; color: white; cursor: pointer; transition: all 0.2s;
+        }
+        .option-btn:hover { background: #26c6da; }
+        .correct { background: #4caf50 !important; }
+        .wrong { background: #f44336 !important; }
+
+        .controls { margin: 30px; }
+        .score { font-size: 1.6em; font-weight: bold; color: #d32f2f; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌟 中文選字小遊戲 🌟</h1>
+        <p style="font-size:1.4em;">組詞 + 聽音辨字（已排除同音字）</p>
+
+        <div id="menu">
+            <button class="mode-btn compose-btn" onclick="startComposeMode()">✍️ 組詞遊戲</button>
+            <button class="mode-btn listen-btn" onclick="startListeningMode()">🎧 聽音辨字（廣東話）</button>
+        </div>
+
+        <!-- 組詞模式 -->
+        <div id="compose-screen" class="game-screen">
+            <h2>✍️ 組詞模式</h2>
+            <div class="score">分數：<span id="compose-score">0</span> / 100</div>
+            <div class="question" id="compose-question">_　　字　　_</div>
+            <div class="options" id="compose-options"></div>
+            <div class="controls">
+                <button onclick="nextComposeQuestion()" id="compose-next" style="display:none; font-size:1.3em; padding:15px 40px;">下一題 →</button>
+            </div>
+        </div>
+
+        <!-- 聽音模式 -->
+        <div id="listen-screen" class="game-screen">
+            <h2>🎧 聽音辨字（廣東話）</h2>
+            <div class="score">分數：<span id="listen-score">0</span> / 100</div>
+            
+            <button onclick="playCurrentSound()" 
+                    style="font-size:2.2em; padding:25px 60px; background:#ff5722; color:white; border:none; border-radius:50px; margin:30px 0;">
+                🔊 播放發音
+            </button>
+            
+            <div class="options listen-options" id="listen-options"></div>
+            <div class="controls">
+                <button onclick="nextListenQuestion()" id="listen-next" style="display:none; font-size:1.3em; padding:15px 40px;">下一題 →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結束彈窗 -->
+    <div id="end-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.75); align-items:center; justify-content:center; z-index:1000;">
+        <div style="background:white; padding:40px; border-radius:25px; max-width:500px; text-align:center;">
+            <h2 id="modal-title">遊戲結束！</h2>
+            <p id="modal-score" style="font-size:2.2em; margin:20px 0;"></p>
+            <button onclick="restartGame()" style="background:#4caf50; color:white; font-size:1.4em; padding:15px 40px; margin:10px; border:none; border-radius:12px;">🔄 再玩一次</button>
+            <button onclick="goToMenu()" style="background:#666; color:white; font-size:1.4em; padding:15px 40px; margin:10px; border:none; border-radius:12px;">返回主選單</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 題庫 ====================
+        const composeQuestions = [ /* 與之前相同 */ 
+            {target: "奧", correct: "深", full: "深奧", pos: "before", options: ["深","懊","帝","媒"]},
+            {target: "懊", correct: "悔", full: "懊悔", pos: "after", options: ["悔","靜","禍","蒂"]},
+            {target: "寧", correct: "靜", full: "寧靜", pos: "after", options: ["靜","悔","禍","報"]},
+            {target: "嚀", correct: "叮", full: "叮嚀", pos: "before", options: ["叮","深","帝","媒"]},
+            {target: "皇", correct: "帝", full: "帝皇", pos: "before", options: ["帝","深","叮","徘"]},
+            {target: "蝗", correct: "禍", full: "蝗禍", pos: "after", options: ["禍","悔","靜","蒂"]},
+            {target: "介", correct: "媒", full: "媒介", pos: "before", options: ["媒","深","帝","叮"]},
+            {target: "芥", correct: "蒂", full: "芥蒂", pos: "after", options: ["蒂","悔","禍","報"]},
+            {target: "回", correct: "報", full: "回報", pos: "after", options: ["報","靜","禍","蒂"]},
+            {target: "徊", correct: "徘", full: "徘徊", pos: "before", options: ["徘","深","帝","媒"]}
+        ];
+
+        const listenQuestions = [
+            {target: "奧", jyutping: "ou3", full: "深奧"},
+            {target: "懊", jyutping: "ou3", full: "懊悔"},
+            {target: "寧", jyutping: "ning4", full: "寧靜"},
+            {target: "嚀", jyutping: "ning4", full: "叮嚀"},
+            {target: "皇", jyutping: "wong4", full: "帝皇"},
+            {target: "蝗", jyutping: "wong4", full: "蝗禍"},
+            {target: "介", jyutping: "gaai3", full: "媒介"},
+            {target: "芥", jyutping: "gaai3", full: "芥蒂"},
+            {target: "回", jyutping: "wui4", full: "回報"},
+            {target: "徊", jyutping: "wui4", full: "徘徊"}
+        ];
+
+        // 同音字配對（用來排除）
+        const homophones = {
+            "奧": ["懊"], "懊": ["奧"],
+            "寧": ["嚀"], "嚀": ["寧"],
+            "皇": ["蝗"], "蝗": ["皇"],
+            "介": ["芥"], "芥": ["介"],
+            "回": ["徊"], "徊": ["回"]
+        };
+
+        let currentMode = '', currentQuestions = [], currentQ = null, score = 0, usedQuestions = [];
+
+        function shuffle(array) { return array.sort(() => Math.random() - 0.5); }
+
+        function showScreen(id) {
+            document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function showModal(title, scoreText) {
+            document.getElementById('modal-title').innerHTML = title;
+            document.getElementById('modal-score').innerHTML = scoreText;
+            document.getElementById('end-modal').style.display = 'flex';
+        }
+
+        function goToMenu() {
+            document.getElementById('end-modal').style.display = 'none';
+            document.getElementById('menu').style.display = 'block';
+        }
+
+        function restartGame() {
+            document.getElementById('end-modal').style.display = 'none';
+            if (currentMode === 'compose') startComposeMode();
+            else startListeningMode();
+        }
+
+        // ====================== 組詞模式 ======================
+        function startComposeMode() {
+            currentMode = 'compose'; score = 0; usedQuestions = [];
+            currentQuestions = shuffle([...composeQuestions]);
+            document.getElementById('menu').style.display = 'none';
+            showScreen('compose-screen');
+            document.getElementById('compose-score').textContent = '0';
+            nextComposeQuestion();
+        }
+
+        function nextComposeQuestion() {
+            if (usedQuestions.length >= 10) return showModal('🎉 組詞遊戲結束！', `總分：${score} / 100`);
+            currentQ = currentQuestions[usedQuestions.length];
+            usedQuestions.push(currentQ);
+
+            document.getElementById('compose-question').textContent = `_　　${currentQ.target}　　_`;
+            document.getElementById('compose-score').textContent = score;
+
+            const container = document.getElementById('compose-options');
+            container.innerHTML = '';
+            shuffle([...currentQ.options]).forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => checkCompose(opt, btn);
+                container.appendChild(btn);
+            });
+            document.getElementById('compose-next').style.display = 'none';
+        }
+
+        function checkCompose(selected, btn) {
+            const all = document.querySelectorAll('#compose-options button');
+            all.forEach(b => b.disabled = true);
+            const correct = selected === currentQ.correct;
+            if (correct) {
+                score += 10;
+                btn.classList.add('correct');
+            } else {
+                btn.classList.add('wrong');
+                all.forEach(b => { if (b.textContent === currentQ.correct) b.classList.add('correct'); });
+            }
+            const full = currentQ.pos === "before" ? currentQ.correct + currentQ.target : currentQ.target + currentQ.correct;
+            setTimeout(() => {
+                alert(correct ? `🎉 答對！\n${full}（${currentQ.full}）` : `😊 正確是「${currentQ.correct}」\n${full}（${currentQ.full}）`);
+                document.getElementById('compose-next').style.display = 'inline-block';
+            }, 200);
+        }
+
+        // ====================== 聽音模式（重點更新） ======================
+        function startListeningMode() {
+            currentMode = 'listen'; score = 0; usedQuestions = [];
+            currentQuestions = shuffle([...listenQuestions]);
+            document.getElementById('menu').style.display = 'none';
+            showScreen('listen-screen');
+            document.getElementById('listen-score').textContent = '0';
+            nextListenQuestion();
+        }
+
+        function nextListenQuestion() {
+            if (usedQuestions.length >= 10) return showModal('🎧 聽音遊戲結束！', `總分：${score} / 100`);
+
+            currentQ = currentQuestions[usedQuestions.length];
+            usedQuestions.push(currentQ);
+
+            document.getElementById('listen-score').textContent = score;
+
+            const container = document.getElementById('listen-options');
+            container.innerHTML = '';
+
+            // 排除同音字
+            const forbidden = homophones[currentQ.target] || [];
+            let others = listenQuestions
+                .filter(q => q.target !== currentQ.target && !forbidden.includes(q.target))
+                .map(q => q.target);
+
+            // 取4個不同音的干擾項
+            others = shuffle(others).slice(0, 4);
+
+            let options = shuffle([currentQ.target, ...others]);
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => checkListen(opt, btn);
+                container.appendChild(btn);
+            });
+
+            document.getElementById('listen-next').style.display = 'none';
+        }
+
+        function playCurrentSound() {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(currentQ.target);
+                utterance.lang = 'zh-HK';
+                utterance.rate = 0.92;
+                utterance.pitch = 1.05;
+                speechSynthesis.speak(utterance);
+            } else {
+                alert('請使用 Chrome 或 Edge 瀏覽器以獲得最佳廣東話發音');
+            }
+        }
+
+        function checkListen(selected, btn) {
+            const all = document.querySelectorAll('#listen-options button');
+            all.forEach(b => b.disabled = true);
+
+            const correct = selected === currentQ.target;
+            if (correct) {
+                score += 10;
+                btn.classList.add('correct');
+            } else {
+                btn.classList.add('wrong');
+                all.forEach(b => { if (b.textContent === currentQ.target) b.classList.add('correct'); });
+            }
+
+            setTimeout(() => {
+                alert(correct 
+                    ? `🎉 答對了！\n\n目標字：${currentQ.target}\n詞語：${currentQ.full}` 
+                    : `😊 正確答案是「${currentQ.target}」\n詞語：${currentQ.full}`);
+                document.getElementById('listen-next').style.display = 'inline-block';
+            }, 300);
+        }
+
+        // 暴露函數給 HTML onclick 使用
+        window.startComposeMode = startComposeMode;
+        window.startListeningMode = startListeningMode;
+        window.nextComposeQuestion = nextComposeQuestion;
+        window.nextListenQuestion = nextListenQuestion;
+        window.playCurrentSound = playCurrentSound;
+        window.restartGame = restartGame;
+        window.goToMenu = goToMenu;
+    </script>
+</body>
+</html>
