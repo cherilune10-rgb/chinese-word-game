@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>認字小英雄 - 廣東話版</title>
+<style>
+    body {
+        font-family: "Microsoft YaHei", "黑體", sans-serif;
+        background: linear-gradient(135deg, #e0f7fa, #fff3e0);
+        margin: 0; padding: 0;
+        text-align: center;
+    }
+    h1 { color: #d32f2f; margin: 20px 0 10px; }
+    #score { font-size: 28px; color: #2e7d32; font-weight: bold; }
+    .container {
+        max-width: 900px;
+        margin: 20px auto;
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .question {
+        font-size: 160px;
+        min-height: 180px;
+        margin: 30px 0;
+        font-weight: bold;
+    }
+    .options {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        max-width: 700px;
+        margin: 40px auto;
+    }
+    .option {
+        font-size: 65px;
+        padding: 28px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        background: #f0f0f0;
+    }
+    .option:hover { transform: scale(1.08); background: #e3f2fd; }
+    .btn {
+        margin: 8px;
+        padding: 12px 25px;
+        font-size: 20px;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+    }
+    .tip { font-size: 18px; color: #d32f2f; margin: 15px 0; }
+    #progress { font-size: 22px; color: #555; margin: 10px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>🎉 認字小英雄 🎉</h1>
+    <div class="tip">廣東話版 • 共 8 題</div>
+    <div id="score">分數：0 / 80</div>
+    <div id="progress">第 1 / 8 題</div>
+    <div id="mode" style="font-size:24px; margin:10px 0; color:#555; font-weight:bold;"></div>
+    <div id="question" class="question"></div>
+    <div class="options" id="options"></div>
+    
+    <div>
+        <button class="btn" onclick="switchMode(1)" style="background:#4fc3f7;color:white;">看圖選字</button>
+        <button class="btn" onclick="switchMode(2)" style="background:#ff9800;color:white;">聽聲認字</button>
+        <button class="btn" onclick="switchMode(3)" style="background:#9c27b0;color:white;">看字讀音</button>
+        <button class="btn" onclick="repeatSpeak()" style="background:#ff5722;color:white;">🔊 重複聽</button>
+    </div>
+</div>
+
+<script>
+// ==================== 目標字 ====================
+const words = [
+    { char: "止", emoji: "🚫" },
+    { char: "登", emoji: "🧗" },
+    { char: "采", emoji: "🌸" },
+    { char: "未", emoji: "❓" },
+    { char: "由", emoji: "🌱🐱" }
+];
+
+let score = 0;
+let currentTarget = null;
+let currentMode = 1;
+let questionCount = 0;
+let questionList = [];   // 用來控制 8 題順序
+
+const scoreEl = document.getElementById('score');
+const progressEl = document.getElementById('progress');
+const modeEl = document.getElementById('mode');
+const questionEl = document.getElementById('question');
+const optionsEl = document.getElementById('options');
+
+// ==================== 廣東話語音 ====================
+function speak(text) {
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-HK';
+        utterance.rate = 0.92;
+        utterance.pitch = 1.05;
+        speechSynthesis.cancel();
+        speechSynthesis.speak(utterance);
+    }
+}
+
+// ==================== 產生 8 題順序 ====================
+function generateQuestionList() {
+    // 前5題：每個字出現一次
+    questionList = [...words];
+    // 後3題：隨機從5個字中挑選
+    for (let i = 0; i < 3; i++) {
+        questionList.push(words[Math.floor(Math.random() * words.length)]);
+    }
+    // 打亂整體順序
+    questionList.sort(() => Math.random() - 0.5);
+}
+
+// ==================== 新題目 ====================
+function newQuestion() {
+    if (questionCount >= 8) {
+        gameOver();
+        return;
+    }
+
+    currentTarget = questionList[questionCount];
+    questionCount++;
+
+    if (currentMode === 2) {
+        speak(currentTarget.char);
+    }
+    renderQuestion();
+}
+
+// ==================== 顯示題目 ====================
+function renderQuestion() {
+    modeEl.textContent = currentMode === 1 ? "看圖選字" :
+                        currentMode === 2 ? "聽聲認字" : "看字讀音";
+    
+    progressEl.textContent = `第 ${questionCount} / 8 題`;
+    scoreEl.textContent = `分數：${score} / 80`;
+
+    questionEl.innerHTML = '';
+    optionsEl.innerHTML = '';
+
+    if (currentMode === 1) {
+        questionEl.innerHTML = `<span style="font-size:160px;">${currentTarget.emoji}</span>`;
+    } else if (currentMode === 2) {
+        questionEl.innerHTML = `<span style="font-size:80px; color:#666;">🔊 聽一聽是什麼字？</span>`;
+    } else {
+        questionEl.innerHTML = `<span style="color:#9c27b0; font-size:140px;">${currentTarget.char}</span>`;
+    }
+
+    // 產生4個選項
+    let wrongs = words.filter(w => w !== currentTarget);
+    let optionsList = [...wrongs.sort(() => Math.random()-0.5).slice(0,3), currentTarget];
+    optionsList.sort(() => Math.random() - 0.5);
+
+    optionsList.forEach(opt => {
+        const div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = opt.char;
+        div.onclick = () => checkAnswer(opt);
+        optionsEl.appendChild(div);
+    });
+}
+
+// ==================== 檢查答案 ====================
+function checkAnswer(selected) {
+    const allOptions = document.querySelectorAll('.option');
+    allOptions.forEach(opt => opt.style.pointerEvents = 'none');
+
+    if (selected === currentTarget) {
+        score += 10;
+        speak("正確！");
+        setTimeout(() => {
+            newQuestion();
+        }, 1000);
+    } else {
+        speak(`正確答案係 ${currentTarget.char}`);
+        setTimeout(() => {
+            newQuestion();
+        }, 1500);
+    }
+}
+
+// ==================== 模式切換 ====================
+function switchMode(mode) {
+    currentMode = mode;
+    newQuestion();
+}
+
+function repeatSpeak() {
+    if (currentTarget) speak(currentTarget.char);
+}
+
+// ==================== 遊戲結束 ====================
+function gameOver() {
+    const percentage = Math.round((score / 80) * 100);
+    let message = `🎉 遊戲結束！\n\n總分：${score} / 80 分\n正確率：${percentage}%\n\n`;
+    
+    if (score === 80) message += "🏆 完美！你是認字小英雄！";
+    else if (score >= 60) message += "🌟 很棒喔！繼續努力！";
+    else if (score >= 40) message += "👍 加油！多練習就會更厲害！";
+    else message += "💪 多聽多看，多玩幾次就熟悉了！";
+
+    setTimeout(() => {
+        alert(message + "\n\n點擊「確定」可以再玩一次");
+        if (confirm("要再玩一次嗎？")) {
+            resetGame();
+        }
+    }, 500);
+}
+
+function resetGame() {
+    score = 0;
+    questionCount = 0;
+    generateQuestionList();
+    newQuestion();
+}
+
+// ==================== 開始遊戲 ====================
+generateQuestionList();
+newQuestion();
+</script>
+</body>
+</html>
