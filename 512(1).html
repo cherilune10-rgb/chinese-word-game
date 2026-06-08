@@ -27,7 +27,7 @@
     <div class="options" id="options"></div>
 
     <div>
-        <button class="btn" onclick="switchMode(1)" style="background:#9c27b0;color:white;">📖 看詞選字</button>
+        <button class="btn" onclick="switchMode(1)" style="background:#9c27b0;color:white;">📖 看詞填字</button>
         <button class="btn" onclick="switchMode(2)" style="background:#ff9800;color:white;">🎧 聽音選字</button>
         <button class="btn" onclick="repeatSpeak()" style="background:#ff5722;color:white;">🔊 重複播放</button>
     </div>
@@ -46,7 +46,7 @@ const words = [
     { char: "燻", full: "煙燻" }
 ];
 
-let score = 0, currentTarget = null, currentMode = 2, questionCount = 0, questionList = [];
+let score = 0, currentTarget = null, currentMode = 1, questionCount = 0, questionList = [];
 
 const homophones = {
     "卓": ["綽"], "綽": ["卓"],
@@ -76,7 +76,7 @@ function newQuestion() {
 }
 
 function renderQuestion() {
-    document.getElementById('mode').textContent = currentMode === 1 ? "📖 看詞選字" : "🎧 聽音選字";
+    document.getElementById('mode').textContent = currentMode === 1 ? "📖 看詞填字" : "🎧 聽音選字";
     document.getElementById('progress').textContent = `第 ${questionCount} / 8 題`;
     document.getElementById('score').textContent = `分數：${score} / 80`;
 
@@ -85,7 +85,9 @@ function renderQuestion() {
     q.innerHTML = ''; opts.innerHTML = '';
 
     if (currentMode === 1) {
-        q.innerHTML = `<span style="font-size:68px;">${currentTarget.full}</span>`;
+        // 看詞填字：把目標字變成 ___
+        let displayWord = currentTarget.full.replace(currentTarget.char, "___");
+        q.innerHTML = `<span style="font-size:68px;">${displayWord}</span>`;
     } else {
         q.innerHTML = `<span style="font-size:90px;">🔊 聽一聽是哪個字？</span>`;
     }
