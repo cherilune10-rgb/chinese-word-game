@@ -34,14 +34,16 @@
 </div>
 
 <script>
-// ==================== 新目標字 ====================
+// ==================== 完整12個目標字 ====================
 const words = [
-    { char: "卓", full: "卓越" },
-    { char: "綽", full: "闊綽" },
-    { char: "農", full: "農民" },
-    { char: "濃", full: "濃厚" },
-    { char: "雇", full: "雇主" },
-    { char: "僱", full: "受僱" },
+    { char: "未", full: "未來" },
+    { char: "魅", full: "魅影" },
+    { char: "堂", full: "拜堂" },
+    { char: "螳", full: "螳螂" },
+    { char: "幾", full: "幾個" },
+    { char: "譏", full: "譏諷" },
+    { char: "賨", full: "賨客" },
+    { char: "濱", full: "河濱" },
     { char: "熏", full: "熏陶" },
     { char: "燻", full: "煙燻" },
     { char: "右", full: "右端" },
@@ -51,9 +53,9 @@ const words = [
 let score = 0, currentTarget = null, currentMode = 1, questionCount = 0, questionList = [];
 
 const homophones = {
-    "卓": ["綽"], "綽": ["卓"],
-    "農": ["濃"], "濃": ["農"],
-    "雇": ["僱"], "僱": ["雇"],
+    "未": ["魅"], "魅": ["未"],
+    "堂": ["螳"], "螳": ["堂"],
+    "幾": ["譏"], "譏": ["幾"],
     "熏": ["燻"], "燻": ["熏"],
     "右": ["佑"], "佑": ["右"]
 };
@@ -88,7 +90,6 @@ function renderQuestion() {
     q.innerHTML = ''; opts.innerHTML = '';
 
     if (currentMode === 1) {
-        // 看詞填字：把目標字替換成 ___
         let displayWord = currentTarget.full.replace(currentTarget.char, "___");
         q.innerHTML = `<span style="font-size:68px;">${displayWord}</span>`;
     } else {
