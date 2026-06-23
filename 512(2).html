@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>🔊 讀字小英雄 - 粵語版</title>
+<style>
+    body {font-family: "Microsoft YaHei", "黑體", sans-serif; background: linear-gradient(135deg, #e0f7fa, #fff3e0); margin:0; padding:20px; text-align:center;}
+    .container {max-width:900px; margin:0 auto; background:white; border-radius:25px; padding:30px; box-shadow:0 15px 40px rgba(0,0,0,0.1);}
+    h1 {color:#d32f2f; font-size:2.6em; margin:10px 0;}
+    #score {font-size:26px; color:#2e7d32; font-weight:bold;}
+    #progress {font-size:22px; color:#555; margin:10px 0;}
+    .question {font-size:72px; min-height:120px; margin:30px 0; font-weight:bold; color:#6a1b9a;}
+    .options {display:grid; grid-template-columns:repeat(2,1fr); gap:20px; max-width:700px; margin:40px auto;}
+    .option {font-size:65px; padding:28px; background:#e3f2fd; border-radius:20px; cursor:pointer; transition:all 0.3s;}
+    .option:hover {background:#81d4fa; transform:scale(1.08);}
+    .btn {padding:12px 28px; margin:8px; font-size:19px; border:none; border-radius:50px; cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>🔊 讀字小英雄</h1>
+    <p style="color:#d32f2f;">廣東話版 • 共12題（已排除同音字）</p>
+    <div id="score">分數：0 / 120</div>
+    <div id="progress">第 1 / 12 題</div>
+    <div id="mode" style="font-size:24px;margin:15px 0;color:#006064;font-weight:bold;"></div>
+    <div id="question" class="question"></div>
+    <div class="options" id="options"></div>
+
+    <div>
+        <button class="btn" onclick="switchMode(1)" style="background:#9c27b0;color:white;">📖 看詞填字</button>
+        <button class="btn" onclick="switchMode(2)" style="background:#ff9800;color:white;">🎧 聽音選字</button>
+        <button class="btn" onclick="repeatSpeak()" style="background:#ff5722;color:white;">🔊 重複播放</button>
+    </div>
+</div>
+
+<script>
+// ==================== 新目標字 ====================
+const words = [
+    { char: "卓", full: "卓越" },
+    { char: "綽", full: "闊綽" },
+    { char: "農", full: "農民" },
+    { char: "濃", full: "濃厚" },
+    { char: "雇", full: "雇主" },
+    { char: "僱", full: "受僱" },
+    { char: "熏", full: "熏陶" },
+    { char: "燻", full: "煙燻" },
+    { char: "右", full: "右端" },
+    { char: "佑", full: "庇佑" }
+];
+
+let score = 0, currentTarget = null, currentMode = 1, questionCount = 0, questionList = [];
+
+const homophones = {
+    "卓": ["綽"], "綽": ["卓"],
+    "農": ["濃"], "濃": ["農"],
+    "雇": ["僱"], "僱": ["雇"],
+    "熏": ["燻"], "燻": ["熏"],
+    "右": ["佑"], "佑": ["右"]
+};
+
+function speak(text) {
+    if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'zh-HK'; u.rate = 0.9; u.pitch = 1.05;
+        speechSynthesis.speak(u);
+    }
+}
+
+function generateQuestionList() {
+    questionList = [...words];
+    questionList.sort(() => Math.random() - 0.5);
+}
+
+function newQuestion() {
+    if (questionCount >= 12) return gameOver();
+    currentTarget = questionList[questionCount++];
+    if (currentMode === 2) speak(currentTarget.char);
+    renderQuestion();
+}
+
+function renderQuestion() {
+    document.getElementById('mode').textContent = currentMode === 1 ? "📖 看詞填字" : "🎧 聽音選字";
+    document.getElementById('progress').textContent = `第 ${questionCount} / 12 題`;
+    document.getElementById('score').textContent = `分數：${score} / 120`;
+
+    const q = document.getElementById('question');
+    const opts = document.getElementById('options');
+    q.innerHTML = ''; opts.innerHTML = '';
+
+    if (currentMode === 1) {
+        // 看詞填字：把目標字替換成 ___
+        let displayWord = currentTarget.full.replace(currentTarget.char, "___");
+        q.innerHTML = `<span style="font-size:68px;">${displayWord}</span>`;
+    } else {
+        q.innerHTML = `<span style="font-size:90px;">🔊 聽一聽是哪個字？</span>`;
+    }
+
+    const forbidden = homophones[currentTarget.char] || [];
+    let wrongs = words.filter(w => w !== currentTarget && !forbidden.includes(w.char));
+    let optionsList = [...wrongs.sort(() => Math.random()-0.5).slice(0,3), currentTarget];
+    optionsList.sort(() => Math.random() - 0.5);
+
+    optionsList.forEach(opt => {
+        const div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = opt.char;
+        div.onclick = () => checkAnswer(opt);
+        opts.appendChild(div);
+    });
+}
+
+function checkAnswer(selected) {
+    document.querySelectorAll('.option').forEach(d => d.style.pointerEvents = 'none');
+    if (selected === currentTarget) {
+        score += 10;
+        document.getElementById('score').textContent = `分數：${score} / 120`;
+        speak("正確！");
+        setTimeout(newQuestion, 1100);
+    } else {
+        speak(`正確答案係 ${currentTarget.char}`);
+        setTimeout(newQuestion, 1600);
+    }
+}
+
+function switchMode(mode) { currentMode = mode; newQuestion(); }
+function repeatSpeak() { if (currentTarget) speak(currentTarget.char); }
+
+function gameOver() {
+    const percent = Math.round(score / 120 * 100);
+    alert(`🎉 遊戲結束！\n總分：${score} / 120 (${percent}%)\n\n${score === 120 ? "🏆 滿分！" : "💪 繼續加油！"}`);
+    if (confirm("要再玩一次嗎？")) {
+        score = 0; questionCount = 0;
+        generateQuestionList();
+        newQuestion();
+    }
+}
+
+generateQuestionList();
+newQuestion();
+</script>
+</body>
+</html>
